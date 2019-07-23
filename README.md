@@ -1,0 +1,1 @@
+# solarsystem-go-restful
