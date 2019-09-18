@@ -1,24 +1,25 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/solarsystem-go-restful/data"
 )
 
-var DB *sql.DB
+var DB *sqlx.DB
 
+//Planet - planet struct with properties
 type Planet struct {
 	ID             int     `json:id`
 	Name           string  `json:"name"`
 	Description    string  `json:"description"`
 	Density        float32 `json:"density"`
 	Tilt           float32 `json:"tilt"`
-	ImageUrl       string  `json:"imageUrl"`
+	ImageUrl       string  `json:"imageUrl" db:"imageUrl"`
 	RotationPeriod float32 `json:"rotationperiod"`
 	Period         float32 `json:"period"`
 	Radius         int64   `json:"radius"`
@@ -31,6 +32,12 @@ type Planet struct {
 	Ordinal        int8    `json:"order"`
 }
 
+//Planets - collection of planet structs
+type Planets struct {
+	Planets []Planet
+}
+
+//Moon - moon struct
 type Moon struct {
 	ID        int    `json:id`
 	Name      string `json:"name"`
@@ -41,31 +48,43 @@ type Moon struct {
 func (p *Planet) Register(container *restful.Container) {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/planets").
+		Path("/v1/planet").
 		Consumes(restful.MIME_JSON).
-		Produces(restful.MIME_JSON) // you can specify this per route as well
-	ws.Route(ws.GET("/").To(p.getPlanets))
+		Produces(restful.MIME_JSON)
 	ws.Route(ws.GET("/{planet-id}").To(p.getPlanet))
 
 	container.Add(ws)
 }
 
+func (p *Planets) Register(container *restful.Container) {
+	ws := new(restful.WebService)
+	ws.
+		Path("/v1/planets").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+	ws.Route(ws.GET("/").To(p.getPlanets))
+
+	container.Add(ws)
+}
+
 // GET http://localhost:8000/v1/planets/
-func (p Planet) getPlanets(request *restful.Request, response *restful.Response) {
-	err := DB.QueryRow("select ID, NAME, DESCRIPTION, DENSITY, TILT, IMAGEURL, ROTATIONPERIOD, PERIOD, RADIUS, MOONS, AU, ECCENTRICITY, VELOCITY, MASS, INCLINATION, ORDINAL FROM planets").Scan(&p.ID, &p.Name, &p.Description, &p.Density, &p.Tilt, &p.ImageUrl, &p.RotationPeriod, &p.Period, &p.Radius, &p.Moons, &p.AU, &p.Eccentricity, &p.Velocity, &p.Mass, &p.Inclination, &p.Ordinal)
+func (p Planets) getPlanets(request *restful.Request, response *restful.Response) {
+	planets := []Planet{}
+	err := DB.Select(&planets, "select ID, NAME, DESCRIPTION, DENSITY, TILT, IMAGEURL, ROTATIONPERIOD, PERIOD, RADIUS, MOONS, AU, ECCENTRICITY, VELOCITY, MASS, INCLINATION, ORDINAL FROM planets")
 	if err != nil {
 		log.Println(err)
 		response.AddHeader("Content-Type", "text/plain")
 		response.WriteErrorString(http.StatusNotFound, "Planet could not be found.")
 	} else {
+		p.Planets = planets
 		response.WriteEntity(p)
 	}
 }
 
-// GET http://localhost:8000/v1/planets/1
+// GET http://localhost:8000/v1/planet/1
 func (p Planet) getPlanet(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("planet-id")
-	err := DB.QueryRow("SELECT ID, NAME, DESCRIPTION, DENSITY, TILT, IMAGEURL, ROTATIONPERIOD, PERIOD, RADIUS, MOONS, AU, ECCENTRICITY, VELOCITY, MASS, INCLINATION, ORDINAL FROM planets WHERE id=?", id).Scan(&p.ID, &p.Name, &p.Description, &p.Density, &p.Tilt, &p.ImageUrl, &p.RotationPeriod, &p.Period, &p.Radius, &p.Moons, &p.AU, &p.Eccentricity, &p.Velocity, &p.Mass, &p.Inclination, &p.Ordinal)
+	err := DB.Get(&p, "SELECT ID, NAME, DESCRIPTION, DENSITY, TILT, IMAGEURL, ROTATIONPERIOD, PERIOD, RADIUS, MOONS, AU, ECCENTRICITY, VELOCITY, MASS, INCLINATION, ORDINAL FROM planets WHERE id=?", id)
 	if err != nil {
 		log.Println(err)
 		response.AddHeader("Content-Type", "text/plain")
@@ -77,7 +96,7 @@ func (p Planet) getPlanet(request *restful.Request, response *restful.Response) 
 
 func main() {
 	var err error
-	DB, err = sql.Open("sqlite3", "../solarsystem.db")
+	DB, err = sqlx.Connect("sqlite3", "../solarsystem.db")
 	if err != nil {
 		log.Println("Problem creating the database")
 	}
@@ -86,8 +105,10 @@ func main() {
 
 	wsContainer := restful.NewContainer()
 	wsContainer.Router(restful.CurlyRouter{})
-	t := Planet{}
-	t.Register(wsContainer)
+	p := Planet{}
+	p.Register(wsContainer)
+	ps := Planets{}
+	ps.Register(wsContainer)
 
 	log.Printf("start listening on localhost:8000")
 	server := &http.Server{Addr: ":8000", Handler: wsContainer}
