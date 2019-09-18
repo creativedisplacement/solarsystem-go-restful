@@ -7,9 +7,11 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+var DB *sqlx.DB
+
 //Initialize creates the database schema and populates the data
-func Initialize(db *sqlx.DB) {
-	statement, err := db.Prepare(planet)
+func Initialize() {
+	statement, err := DB.Prepare(planet)
 	if err != nil {
 		log.Println(err)
 	}
@@ -19,10 +21,10 @@ func Initialize(db *sqlx.DB) {
 		log.Println("Planets table already exists")
 	} else {
 		log.Println("Planets table created")
-		populatePlanets(db)
+		populatePlanets()
 	}
 
-	statement, err = db.Prepare(moon)
+	statement, err = DB.Prepare(moon)
 	if err != nil {
 		log.Println(err)
 	}
@@ -32,18 +34,18 @@ func Initialize(db *sqlx.DB) {
 		log.Println("Moons table already exists")
 	} else {
 		log.Println("Moons table created")
-		popluateMoons(db)
+		popluateMoons()
 	}
 }
 
-func populatePlanets(db *sqlx.DB) {
-	rows := rowCount(db, "SELECT COUNT(*) FROM planets")
+func populatePlanets() {
+	rows := rowCount("SELECT COUNT(*) FROM planets")
 
 	if rows > 0 {
 		log.Println("Planet table already populated", rows)
 		return
 	}
-	statement, _ := db.Prepare(`INSERT INTO planets (
+	statement, _ := DB.Prepare(`INSERT INTO planets (
 		name,
 		description,
 		density,
@@ -74,14 +76,14 @@ func populatePlanets(db *sqlx.DB) {
 	log.Println("Planet table populated")
 }
 
-func popluateMoons(db *sqlx.DB) {
-	rows := rowCount(db, "SELECT COUNT(*) FROM moons")
+func popluateMoons() {
+	rows := rowCount("SELECT COUNT(*) FROM moons")
 
 	if rows > 0 {
 		log.Println("Moon table already populated", rows)
 		return
 	}
-	statement, _ := db.Prepare(`INSERT INTO moons (
+	statement, _ := DB.Prepare(`INSERT INTO moons (
 		name,
 		planetid,
 		ordinal
@@ -111,9 +113,9 @@ func popluateMoons(db *sqlx.DB) {
 	log.Println("Moon table populated")
 }
 
-func rowCount(db *sqlx.DB, query string) int {
+func rowCount(query string) int {
 	count := 0
-	row := db.QueryRow(query)
+	row := DB.QueryRow(query)
 	err := row.Scan(&count)
 	if err != nil {
 		log.Fatal(err)
