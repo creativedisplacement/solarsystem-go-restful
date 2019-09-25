@@ -18,12 +18,50 @@ func (p *Planet) Register(container *restful.Container) {
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 	ws.Route(ws.GET("/{planet-id}").To(p.getPlanet))
-
+	ws.Route(ws.POST("").To(p.addPlanet))
+	ws.Route(ws.PUT("").To(p.updatePlanet))
+	ws.Route(ws.DELETE("/{planet-id}").To(p.deletePlanet))
 	container.Add(ws)
 }
 
 // GET http://localhost:8000/v1/planet/1
 func (p Planet) getPlanet(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("planet-id")
+	err := DB.Get(&p, "SELECT ID, NAME, DESCRIPTION, DENSITY, TILT, IMAGEURL, ROTATIONPERIOD, PERIOD, RADIUS, MOONS, AU, ECCENTRICITY, VELOCITY, MASS, INCLINATION, ORDINAL FROM planets WHERE id=?", id)
+	if err != nil {
+		log.Println(err)
+		response.AddHeader("Content-Type", "text/plain")
+		response.WriteErrorString(http.StatusNotFound, "Planet could not be found.")
+	} else {
+		response.WriteEntity(p)
+	}
+}
+
+func (p Planet) addPlanet(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("planet-id")
+	err := DB.Get(&p, "SELECT ID, NAME, DESCRIPTION, DENSITY, TILT, IMAGEURL, ROTATIONPERIOD, PERIOD, RADIUS, MOONS, AU, ECCENTRICITY, VELOCITY, MASS, INCLINATION, ORDINAL FROM planets WHERE id=?", id)
+	if err != nil {
+		log.Println(err)
+		response.AddHeader("Content-Type", "text/plain")
+		response.WriteErrorString(http.StatusNotFound, "Planet could not be found.")
+	} else {
+		response.WriteEntity(p)
+	}
+}
+
+func (p Planet) updatePlanet(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("planet-id")
+	err := DB.Get(&p, "SELECT ID, NAME, DESCRIPTION, DENSITY, TILT, IMAGEURL, ROTATIONPERIOD, PERIOD, RADIUS, MOONS, AU, ECCENTRICITY, VELOCITY, MASS, INCLINATION, ORDINAL FROM planets WHERE id=?", id)
+	if err != nil {
+		log.Println(err)
+		response.AddHeader("Content-Type", "text/plain")
+		response.WriteErrorString(http.StatusNotFound, "Planet could not be found.")
+	} else {
+		response.WriteEntity(p)
+	}
+}
+
+func (p Planet) deletePlanet(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("planet-id")
 	err := DB.Get(&p, "SELECT ID, NAME, DESCRIPTION, DENSITY, TILT, IMAGEURL, ROTATIONPERIOD, PERIOD, RADIUS, MOONS, AU, ECCENTRICITY, VELOCITY, MASS, INCLINATION, ORDINAL FROM planets WHERE id=?", id)
 	if err != nil {

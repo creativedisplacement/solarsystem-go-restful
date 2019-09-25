@@ -24,7 +24,7 @@ func main() {
 	planet.DB = DB
 	planets.DB = DB
 	data.DB = DB
-	data.Initialize()
+	data.Initialize(DB)
 
 	wsContainer := restful.NewContainer()
 	wsContainer.Router(restful.CurlyRouter{})

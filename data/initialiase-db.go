@@ -10,7 +10,7 @@ import (
 var DB *sqlx.DB
 
 //Initialize creates the database schema and populates the data
-func Initialize() {
+func Initialize(DB *sqlx.DB) {
 	statement, err := DB.Prepare(planet)
 	if err != nil {
 		log.Println(err)
@@ -21,7 +21,7 @@ func Initialize() {
 		log.Println("Planets table already exists")
 	} else {
 		log.Println("Planets table created")
-		populatePlanets()
+		populatePlanets(DB)
 	}
 
 	statement, err = DB.Prepare(moon)
@@ -34,12 +34,12 @@ func Initialize() {
 		log.Println("Moons table already exists")
 	} else {
 		log.Println("Moons table created")
-		popluateMoons()
+		popluateMoons(DB)
 	}
 }
 
-func populatePlanets() {
-	rows := rowCount("SELECT COUNT(*) FROM planets")
+func populatePlanets(DB *sqlx.DB) {
+	rows := rowCount(DB, "SELECT COUNT(*) FROM planets")
 
 	if rows > 0 {
 		log.Println("Planet table already populated", rows)
@@ -76,8 +76,8 @@ func populatePlanets() {
 	log.Println("Planet table populated")
 }
 
-func popluateMoons() {
-	rows := rowCount("SELECT COUNT(*) FROM moons")
+func popluateMoons(DB *sqlx.DB) {
+	rows := rowCount(DB, "SELECT COUNT(*) FROM moons")
 
 	if rows > 0 {
 		log.Println("Moon table already populated", rows)
@@ -113,7 +113,7 @@ func popluateMoons() {
 	log.Println("Moon table populated")
 }
 
-func rowCount(query string) int {
+func rowCount(DB *sqlx.DB, query string) int {
 	count := 0
 	row := DB.QueryRow(query)
 	err := row.Scan(&count)
